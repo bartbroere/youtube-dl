@@ -95,7 +95,7 @@ class NPOIE(InfoExtractor):
 class BNNVaraIE(NPOIE):
     IE_NAME = 'bnnvara'
     IE_DESC = 'bnnvara.nl'
-    _VALID_URL = r'https?://(?:www\.)?bnnvara\.nl/videos/[0-9]*'
+    _VALID_URL = r'https?://(?:www\.)?bnnvara\.nl/(?:videos/[0-9]+|[^/?#]+/artikelen/[^/?#]+)'
     _TESTS = [
         {
             # 2025-05-19: This media is no longer available, see if it can be replaced with a different one
@@ -119,11 +119,28 @@ class BNNVaraIE(NPOIE):
                 'ext': 'mp4',
             }
         },
+        {
+            'url': 'https://www.bnnvara.nl/zembla/artikelen/vrijstaat-schiphol',
+            'md5': '84391dc34e46db33c126aa6bdb699e02',
+            'info_dict': {
+                'id': '572037',
+                'thumbnail': r're:https://media\.bnnvara\.nl/.+\.jpg',
+                'title': 'Vrijstaat Schiphol',
+                'ext': 'mp4',
+            },
+        },
     ]
 
     def _real_extract(self, url):
         url = url.rstrip('/')
-        video_id = url.split('/')[-1]
+        if '/artikelen/' in url:
+            page = self._download_webpage(url, url.split('/')[-1])
+            video_id = self._search_regex(
+                [r'"embedUrl"\s*:\s*"https://player\.bnnvara\.nl/+\?id=(\d+)"',
+                 r'"contentURL"\s*:\s*"https://(?:www\.)?bnnvara\.nl/videos/(\d+)"'],
+                page, 'video id')
+        else:
+            video_id = url.split('/')[-1]
         graphql_query = """query getMedia($id: ID!, $mediaUrl: String, $hasAdConsent: Boolean!, $atInternetId: Int) {
                             player(
                                 id: $id
